@@ -5,6 +5,9 @@ Finite State Machine implementation using pure Python 3
 class TransitionNotPossibleException(Exception):
     pass
 
+class InvalidStateMachineException(Exception):
+    pass
+
 
 class FSM(object):
     """
@@ -25,7 +28,7 @@ class FSM(object):
         Arguments:
             states {dict} -- dictionary containing all states and transitions
             start_state {str} -- single start state
-            terminal_states {str} -- set of terminal states
+            terminal_states {set(str)} -- set of terminal states
         """
 
         self.states = states # states, transition-function and transitions all in one
@@ -34,11 +37,15 @@ class FSM(object):
         self.current_state = self.start_state
         self.state_history = [self.current] # store old states
         self.transition_history = []
-        #self._validate() TODO validate the FSM
+        self._validate()
 
 
     def _validate(self,):
-        raise NotImplementedError
+        for transitions in self.states.values():
+            for transition in transitions:
+                if transition[1] not in self.states.keys():
+                    raise InvalidStateMachineException()
+        return True
     
     def step(self, transition):
         if self.can(transition):
@@ -51,7 +58,7 @@ class FSM(object):
                     self.current_state = possible_transition[1]
                     return self.current
         else:
-            raise TransitionNotPossibleException
+            raise TransitionNotPossibleException()
         return None
 
     def _batch_step(self, transition, relevant_states):
@@ -105,6 +112,15 @@ def test():
     print(fsm.can_terminate())
     print(fsm.history())
     assert fsm.accepts('baaaaaaaaaa', from_start=True)
+    states = {
+        'q0' : {('0', 'q1'), ('1', 'q0')},
+        'q1' : {('0', 'q2'), ('1', 'q0')},
+        'q2' : {('0', 'q2'), ('1', 'q2')}
+    }
+    fsm = FSM(states, 'q0', {'q2'})
+    print(fsm.step('0'))
+    print(fsm.can_terminate())
+    assert fsm.accepts('100', from_start=False)
 
 if __name__ == '__main__':
     test()
