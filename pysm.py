@@ -43,7 +43,7 @@ class FSM(object):
     def step(self, transition):
         if self.can(transition):
             possible_transitions = self.states.get(self.current)
-            # we choose the first transition we can make
+            # we choose the first transition we can make, greedy
             for possible_transition in possible_transitions:
                 if possible_transition[0] == transition:
                     self.state_history.append(possible_transition[1])
@@ -54,12 +54,35 @@ class FSM(object):
             raise TransitionNotPossibleException
         return None
 
+    def _batch_step(self, transition, relevant_states):
+        transitioned_states = set()
+        for state in relevant_states:
+            possible_transitions = self.states.get(state)
+            for possible_transition in possible_transitions:
+                if possible_transition[0] == transition:
+                    transitioned_states.add(possible_transition[1])
+        return transitioned_states
+
     def can(self, transition):
         possible_transitions = self.states.get(self.current)
         return bool(len([x[0] for x in possible_transitions if x[0] == transition]))
 
     def can_terminate(self,):
         return self.current in self.terminal_states
+
+    def accepts(self, transitions, from_start=False):
+        transitions = list(transitions)
+        initial_state = self.start_state if from_start else self.current
+        current_states = {initial_state}
+        while transitions:
+            current_transition, transitions = transitions[0], transitions[1:]
+            current_states = self._batch_step(current_transition, current_states)
+            if not current_states:
+                return False
+        if current_states & self.terminal_states:
+            return True
+        else:
+            return False
     
     @property
     def current(self,):
@@ -81,6 +104,7 @@ def test():
     print(fsm.current)
     print(fsm.can_terminate())
     print(fsm.history())
+    assert fsm.accepts('baaaaaaaaaa', from_start=True)
 
 if __name__ == '__main__':
     test()
