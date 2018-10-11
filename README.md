@@ -1,3 +1,3 @@
 # PySM
 
-Pure Python implementation of a finite state machine
+Pure Python implementation of a finite state machine.
